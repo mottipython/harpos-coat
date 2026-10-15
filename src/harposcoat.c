@@ -760,7 +760,7 @@ static Snd make_hiss(double dur)
 
 ART(s_honk1, "s_honk1.ogg") ART(s_honk3, "s_honk3.ogg") ART(s_quack1, "s_quack1.ogg") ART(s_quacks, "s_quacks.ogg")
 static Snd rustle, pop, up_whistle, long_up, down_whistle, whoosh, boing, twinkle, thud, big_thud, clatter, soft,
-           crash, ring, hiss, honk, honk2, quack, quacks;
+           smash, ring, hiss, honk, honk2, quack, quacks;
 static void make_sounds(void)
 {
     uint64_t keep = seed_state;
@@ -770,7 +770,7 @@ static void make_sounds(void)
     up_whistle = make_slide(UP, 2, 0.32); long_up = make_slide(LONG, 5, 2.4); down_whistle = make_slide(DOWN, 2, 0.6);
     whoosh = make_whoosh(0.5); boing = make_boing(140, 0.7); twinkle = make_twinkle();
     thud = make_thud(85, 0.35); big_thud = make_thud(55, 0.7); clatter = make_clatter(7, 0.6); soft = make_pff(0.25);
-    crash = make_clatter(22, 1.6); ring = make_ring(1.3); hiss = make_hiss(1.1);
+    smash = make_clatter(22, 1.6); ring = make_ring(1.3); hiss = make_hiss(1.1);
     honk = decode(art_s_honk1, art_s_honk1_end); honk2 = decode(art_s_honk3, art_s_honk3_end);
     quack = decode(art_s_quack1, art_s_quack1_end); quacks = decode(art_s_quacks, art_s_quacks_end);
     seed_state = keep;
@@ -808,7 +808,7 @@ static void cues(double t0, double t1)
         case L_CLATTER: play(&clatter, 0.45); break;
         case L_SOFT: play(&soft, 0.4); break;
         case L_QUACK: play(&soft, 0.3); play(&quack, 0.6); break;
-        case L_CRASH: play(&crash, 0.6); play(&big_thud, 0.5); break;
+        case L_CRASH: play(&smash, 0.6); play(&big_thud, 0.5); break;
         }
     }
     int after = after_for(&m);
