@@ -254,10 +254,10 @@ static void make_things(void)
 
 /* Harpo's poses (tools/make_parts.py, in the order of the sheet), and where the hand
  * that holds things is in each, in the pose's own pixels */
-enum { P_REACH, P_PULL, P_OFFER, P_LOOK, P_GOOKIE, P_TOSS, P_PEER, P_HEAVE, P_HONK, P_WAIT, P_HAT, P_SHRUG };
+enum { POSE_REACH, POSE_PULL, POSE_OFFER, POSE_LOOK, POSE_GOOKIE, POSE_TOSS, POSE_PEER, POSE_HEAVE, POSE_HONK, POSE_WAIT, POSE_HAT, POSE_SHRUG };
 static const double HAND[12][2] = {
-    [P_REACH] = {205, 300}, [P_PULL] = {335, 125}, [P_OFFER] = {395, 235}, [P_LOOK] = {322, 220},
-    [P_GOOKIE] = {360, 235}, [P_TOSS] = {50, 105}, [P_HEAVE] = {262, 300},
+    [POSE_REACH] = {205, 300}, [POSE_PULL] = {335, 125}, [POSE_OFFER] = {395, 235}, [POSE_LOOK] = {322, 220},
+    [POSE_GOOKIE] = {360, 235}, [POSE_TOSS] = {50, 105}, [POSE_HEAVE] = {262, 300},
 };
 #define HARPO_TALL 570.0                 /* Harpo's height in the pictures */
 /* the pictures of the poses (the list of pictures is in the order of their names, so
@@ -314,10 +314,10 @@ static Moment moment(double t)
     return m;
 }
 /* the face he pulls, and what he does after the toss, for a turn */
-static int face_for(const Moment *m) { return hash01((uint64_t)m->round * 31 + m->turn) < 0.5 ? P_LOOK : P_GOOKIE; }
+static int face_for(const Moment *m) { return hash01((uint64_t)m->round * 31 + m->turn) < 0.5 ? POSE_LOOK : POSE_GOOKIE; }
 static int after_for(const Moment *m)
 {
-    static const int A[] = {P_WAIT, P_HONK, P_HAT, P_SHRUG, P_HONK};
+    static const int A[] = {POSE_WAIT, POSE_HONK, POSE_HAT, POSE_SHRUG, POSE_HONK};
     return A[(int)(hash01((uint64_t)m->round * 37 + m->turn) * 5) % 5];
 }
 
@@ -807,8 +807,8 @@ static void cues(double t0, double t1)
         }
     }
     int after = after_for(&m);
-    if (after == P_HONK && DUE(tm.after + 0.25)) play(hash01((uint64_t)m.round * 41 + m.turn) < 0.5 ? &honk : &honk2, 0.55);
-    if (after == P_SHRUG && DUE(tm.after + 0.15)) play(&down_whistle, 0.3);
+    if (after == POSE_HONK && DUE(tm.after + 0.25)) play(hash01((uint64_t)m.round * 41 + m.turn) < 0.5 ? &honk : &honk2, 0.55);
+    if (after == POSE_SHRUG && DUE(tm.after + 0.15)) play(&down_whistle, 0.3);
     #undef DUE
 }
 
@@ -886,15 +886,15 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     heap_spots(&m, m.turn < NTHING ? m.turn + 1 : NTHING, spot);
 
     /* what he is doing, and what he has in his hand */
-    int pose = P_WAIT, held = -1, flying = 0;
+    int pose = POSE_WAIT, held = -1, flying = 0;
     double hold_x = 0, hold_y = 0, hold_angle = 0;
     double fade = 0;
     if (m.what >= 0) {
         Times tm = times_for(m.what);
         double u = m.u;
-        if (u < tm.pull) pose = P_REACH;
+        if (u < tm.pull) pose = POSE_REACH;
         else if (u < tm.show) {
-            pose = m.what == LADDER ? P_HEAVE : P_PULL;
+            pose = m.what == LADDER ? POSE_HEAVE : POSE_PULL;
             held = m.what;
             /* coming up out of his coat */
             double rise = m.what == LADDER ? ease(ramp(u, tm.pull, tm.show - 0.2)) : ease(ramp(u, tm.pull, tm.pull + 0.35));
@@ -907,10 +907,10 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
                 hold_x = hx + sin(anim_t * 20) * unit * 0.4; hold_y = cy + len * 0.45 - len * 1.0 * rise;
             } else { hold_x = cx + (hx - cx) * rise; hold_y = cy + (hy - cy) * rise; }
         }
-        else if (u < tm.face) { pose = P_OFFER; held = m.what; }
+        else if (u < tm.face) { pose = POSE_OFFER; held = m.what; }
         else if (u < tm.toss) { pose = face_for(&m); held = m.what; }
         else if (u < tm.after) {
-            pose = P_TOSS;
+            pose = POSE_TOSS;
             if (u < tm.let_go) held = m.what;
         }
         else pose = after_for(&m);
@@ -919,7 +919,7 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
         flying = u >= tm.let_go && u < tm.land;
     } else {
         double u = m.u;
-        pose = u < 1.6 ? P_PEER : P_SHRUG;
+        pose = u < 1.6 ? POSE_PEER : POSE_SHRUG;
         fade = ramp(u, ENDING - 2.0, ENDING - 0.5);
     }
     pose_now = pose;
@@ -944,7 +944,7 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     if (flying) {
         Times tm = times_for(m.what);
         double q = ramp(m.u, tm.let_go, tm.land), sx, sy;
-        on_harpo(P_TOSS, HAND[P_TOSS][0], HAND[P_TOSS][1], &sx, &sy);
+        on_harpo(POSE_TOSS, HAND[POSE_TOSS][0], HAND[POSE_TOSS][1], &sx, &sy);
         double ex, ey;
         grip_on_heap(m.what, &spot[m.turn], &ex, &ey);
         double x = sx + (ex - sx) * q, y = sy + (ey - sy) * q - sh * 0.35 * 4 * q * (1 - q);
