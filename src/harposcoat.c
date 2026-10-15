@@ -331,8 +331,8 @@ static int after_for(const Moment *m)
 typedef struct { double pull, show, toss, let_go, land, after; } Times;
 static Times times_for(int what)
 {
-    if (what == LADDER) return (Times){0.9, 3.6, 6.2, 6.3, 7.0, 6.8};
-    return (Times){0.9, 1.7, 4.6, 4.7, 5.3, 5.2};
+    if (what == LADDER) return (Times){0.9, 3.6, 6.2, 6.3, 7.15, 6.8};
+    return (Times){0.9, 1.7, 4.6, 4.7, 5.45, 5.2};
 }
 
 static void update(double dt)
@@ -933,12 +933,33 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     /* the heap: everything already thrown */
     int landed = m.turn;
     if (m.what >= 0 && m.u >= times_for(m.what).land) landed = m.turn + 1;
+    /* The one that has just come down bounces and rocks till it settles, a light one
+     * more than a heavy one; a heavy one shakes the whole heap and raises some dust. */
+    double since = landed > m.turn && m.what >= 0 ? m.u - times_for(m.what).land : -1;
+    int heavy = since >= 0 && (thing[m.what].land == L_THUD || thing[m.what].land == L_CRASH);
     for (int k = 0; k < landed && k < NTHING; k++) {
-        double bounce = 0;
-        if (k == m.turn) { double q = m.u - times_for(m.what).land; bounce = -unit * 2.5 * exp(-q * 9) * fabs(sin(q * 18)); }
         int what = m.ord[k];
-        double s = thing_scale(what) * HEAP;
-        put(thing[what].pic, spot[k].x, spot[k].y + bounce, sprite[thing[what].pic].w / 2.0, sprite[thing[what].pic].h / 2.0, s, spot[k].angle, 1, 0);
+        double s = thing_scale(what) * HEAP, dy = 0, tilt = 0;
+        double size = fmax(sprite[thing[what].pic].w, sprite[thing[what].pic].h) * s;
+        if (k == m.turn) {
+            double q = since;
+            dy = -size * (heavy ? 0.1 : 0.28) * exp(-q * 5) * fabs(sin(q * 11));
+            tilt = (heavy ? 5 : 16) * exp(-q * 5) * sin(q * 14);
+        } else if (heavy) {
+            double q = since;
+            dy = unit * (m.what == LADDER ? 1.6 : 0.9) * exp(-q * 8) * sin(q * 48);
+        }
+        put(thing[what].pic, spot[k].x, spot[k].y + dy, sprite[thing[what].pic].w / 2.0, sprite[thing[what].pic].h / 2.0, s, spot[k].angle + tilt, 1, 0);
+    }
+    if (heavy && since < 0.8) {
+        double q = since / 0.8, a = spot[m.turn].angle * M_PI / 180;
+        double s = thing_scale(m.what) * HEAP, pw = sprite[thing[m.what].pic].w * s, ph = sprite[thing[m.what].pic].h * s;
+        double rw = fabs(pw * cos(a)) + fabs(ph * sin(a)), rh = fabs(pw * sin(a)) + fabs(ph * cos(a)), bx = spot[m.turn].x, by = spot[m.turn].y + rh * 0.4;
+        for (int i = 0; i < 7; i++) {
+            double side = (i - 3) / 3.0, r = unit * (2.5 + 5 * q) * (1 - 0.3 * fabs(side));
+            disc(bx + side * rw * (0.4 + 0.5 * ease(q)), by - unit * 2 * q * (1 - fabs(side) * 0.5), r,
+                 col((Rgb){205, 185, 150}, 0.5 * (1 - q)), col((Rgb){190, 170, 140}, 0));
+        }
     }
     if (showing >= 0) {
         /* him holding it up: he pops up with it, then shows it off, rocking on his heels */
@@ -955,10 +976,15 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
         Times tm = times_for(m.what);
         double q = ramp(m.u, tm.let_go, tm.land), sx, sy;
         on_harpo(POSE_TOSS, HAND[POSE_TOSS][0], HAND[POSE_TOSS][1], &sx, &sy);
-        double ex, ey;
-        grip_on_heap(m.what, &spot[m.turn], &ex, &ey);
-        double x = sx + (ex - sx) * q, y = sy + (ey - sy) * q - sh * 0.35 * 4 * q * (1 - q);
-        draw_thing(m.what, x, y, spot[m.turn].angle * q + (m.what == LADDER ? 0 : 720 * q), 1 + (HEAP - 1) * q);
+        /* it flies by its middle, the way a thrown thing turns, over and over once on the way */
+        const Thing *t = &thing[m.what];
+        double s0 = thing_scale(m.what), sc = s0 * (1 + (HEAP - 1) * q);
+        double cx = sx + (0.5 - t->gx) * sprite[t->pic].w * s0, cy = sy + (0.5 - t->gy) * sprite[t->pic].h * s0;
+        const Spot *e = &spot[m.turn];
+        double x = cx + (e->x - cx) * q, y = cy + (e->y - cy) * q - sh * 0.3 * 4 * q * (1 - q);
+        double angle = e->angle * q + 360 * q;
+        if (t->land == L_THUD || m.what == LADDER) angle = e->angle * q + (m.what == LADDER ? 12 : 70) * sin(q * M_PI);   /* heavy ones lurch over, they don't spin */
+        put(t->pic, x, y, sprite[t->pic].w / 2.0, sprite[t->pic].h / 2.0, sc, angle, 1, 0);
     }
     if (fade > 0) rect(0, 0, sw, sh, col(BG, fade));
     old_film();
