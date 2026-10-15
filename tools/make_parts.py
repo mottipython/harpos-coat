@@ -6,6 +6,10 @@ src/art.h (every picture, for the program to build in).
                   (each pose is everything in its cell, so motion lines stay with it)
   02-things.jpeg  the 16 things in his coat, found by where each lies on the sheet
   03-stage.jpeg   the theatre (the Groucho Clock's), as it is
+  04-holding.jpeg Harpo holding up each of the 16 things, 4 x 4 in the order of THINGS:
+                  hold_<thing>, each everything whose middle is in its cell (so the
+                  ladder, which reaches into the cell above, stays whole); and
+                  src/hold.h, where his feet are in each and how tall he is
 
     tools/make_parts.py
 """
@@ -83,6 +87,42 @@ def things():
         keep = np.isin(lab, owner[name]) & (k[..., 3] > 100)
         save_part(k, keep, name)
 
+def holding():
+    k = key(np.asarray(Image.open(f"{SRC}/04-holding.jpeg").convert("RGB")).astype(float))
+    H, W = k.shape[:2]
+    solid = k[..., 3] > 100
+    grown = np.asarray(Image.fromarray((solid * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+    lab, n = blobs(grown)
+    # each Harpo (with whatever he holds, if it touches him) goes to the cell his middle
+    # is in; the bits left over (a flame, a puff of steam) go to the nearest Harpo
+    cells, big, small = {}, [], []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if len(ys) < 60: continue
+        box = (xs.min(), ys.min(), xs.max(), ys.max())
+        (big if len(ys) > 20000 else small).append((i, box, xs.mean(), ys.mean()))
+    for i, box, mx, my in big:
+        cells.setdefault((int(my * 4 // H), int(mx * 4 // W)), []).append(i)
+    def gap(p, q):
+        return max(p[0] - q[2], q[0] - p[2], 0) ** 2 + max(p[1] - q[3], q[1] - p[3], 0) ** 2
+    for i, box, mx, my in small:
+        j, jbox, jx, jy = min(big, key=lambda b: gap(box, b[1]))
+        cells[(int(jy * 4 // H), int(jx * 4 // W))].append(i)
+    rows = []
+    for j, name in enumerate(THINGS):
+        r, c = divmod(j, 4)
+        keep = np.isin(lab, cells[(r, c)]) & solid
+        a, b, _, _ = save_part(k, keep, f"hold_{name}")
+        # Harpo himself is the left part of his cell: his hat to his shoes, and his feet
+        x0, x1 = c * W // 4 + int(0.12 * W / 4), c * W // 4 + int(0.6 * W / 4)
+        ys, xs = np.nonzero(keep[:, x0:x1])
+        top, bot = ys.min(), ys.max()
+        feet = ys > bot - 25
+        rows.append(f"    {{{xs[feet].mean() + x0 - a:.1f}, {bot + 1 - b}, {bot + 1 - top}}},  /* {name} */")
+    open("src/hold.h", "w").write("/* Made by tools/make_parts.py: Harpo holding each thing, the middle of his feet\n"
+                                  " * and their bottom, and his height, in the picture's pixels. */\n"
+                                  "static const double HOLD_AT[16][3] = {\n" + "\n".join(rows) + "\n};\n")
+
 def write_list():
     files = sorted(f for f in os.listdir(OUT) if f.endswith((".png", ".jpg")))
     items = [f'X({os.path.splitext(f)[0].replace("-", "_")}, "{f}")' for f in files]
@@ -96,6 +136,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     harpo()
     things()
+    holding()
     subprocess.run(["magick", f"{SRC}/03-stage.jpeg", "-resize", "2560x", "-quality", "88", f"{OUT}/stage.jpg"], check=True)
     print("stage.jpg")
     write_list()

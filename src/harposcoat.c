@@ -2,8 +2,8 @@
  * harpos-coat: a cartoon screensaver. Harpo Marx, on a vaudeville stage, pulls one
  * thing after another out of his long coat (a candle burning at both ends, a cup of
  * hot coffee, a fish, a blowtorch, a live duck, a ladder far too long for any coat),
- * shows each one off, pulls a face, and tosses it onto a growing heap. Now and then
- * he honks.
+ * shows each one off and tosses it onto a growing heap. Now and then he honks, or
+ * pulls a face.
  *
  *   harpos-coat            full screen on every display; any key or mouse movement quits
  *   harpos-coat --window   in a window; Esc or Q quits
@@ -214,8 +214,8 @@ static double ease(double x) { return x * x * (3 - 2 * x); }
  *
  * Harpo pulls the sixteen things out of his coat one at a time, in a different order
  * every time round (but always the anchor, and then the ladder, last). Each turn he
- * reaches in, pulls the thing out and holds it up, shows it to us, pulls a face, and
- * tosses it over to the heap. Then he looks into his coat, shrugs, the stage goes
+ * reaches in, pulls the thing out and holds it up to show us, tosses it over to the
+ * heap, and then honks, pulls a face, tips his hat or just waits. Then he looks into his coat, shrugs, the stage goes
  * dark, and he begins again. Everything is worked out from T, the act's own clock, so
  * the sound and the picture always agree. */
 static double T, anim_t;
@@ -231,23 +231,29 @@ enum { CANDLE, COFFEE, FISH, TORCH, MALLET, DUCK, SCISSORS, SANDWICH, TELESCOPE,
        FLOWERS, LAMP, LADDER, ANCHOR, NTHING };
 typedef struct {
     int pic;
-    double size;          /* its longest side, in Harpo's heights */
+    double size;          /* its longest side, in Harpo's heights (as big as it is in his hand) */
     double gx, gy;        /* where he holds it, as part of its picture */
     int land;             /* the noise it makes on the heap */
 } Thing;
 enum { L_THUD, L_CLATTER, L_SOFT, L_QUACK, L_CRASH };
+/* Harpo holding each one up (04-holding), and where his feet are in it */
+#include "hold.h"
+static const int HOLDING[NTHING] = {
+    SP_hold_candle, SP_hold_coffee, SP_hold_fish, SP_hold_torch, SP_hold_mallet, SP_hold_duck, SP_hold_scissors,
+    SP_hold_sandwich, SP_hold_telescope, SP_hold_alarm, SP_hold_icecream, SP_hold_boat, SP_hold_flowers,
+    SP_hold_lamp, SP_hold_ladder, SP_hold_anchor};
 static Thing thing[NTHING];
 static void make_things(void)
 {
     const Thing t[NTHING] = {
-        [CANDLE] = {SP_candle, 0.34, 0.50, 0.62, L_SOFT},     [COFFEE] = {SP_coffee, 0.22, 0.50, 0.92, L_CLATTER},
-        [FISH] = {SP_fish, 0.40, 0.50, 0.06, L_SOFT},         [TORCH] = {SP_torch, 0.32, 0.73, 0.62, L_CLATTER},
-        [MALLET] = {SP_mallet, 0.44, 0.12, 0.90, L_THUD},     [DUCK] = {SP_duck, 0.40, 0.42, 0.30, L_QUACK},
-        [SCISSORS] = {SP_scissors, 0.38, 0.12, 0.55, L_CLATTER}, [SANDWICH] = {SP_sandwich, 0.22, 0.30, 0.75, L_SOFT},
-        [TELESCOPE] = {SP_telescope, 0.42, 0.22, 0.78, L_THUD}, [ALARM] = {SP_alarm, 0.24, 0.50, 0.08, L_CLATTER},
-        [ICECREAM] = {SP_icecream, 0.26, 0.50, 0.92, L_SOFT}, [BOAT] = {SP_boat, 0.42, 0.50, 0.88, L_THUD},
-        [FLOWERS] = {SP_flowers, 0.40, 0.50, 0.90, L_SOFT},   [LAMP] = {SP_lamp, 0.36, 0.50, 0.95, L_CLATTER},
-        [LADDER] = {SP_ladder, 1.75, 0.50, 0.55, L_CRASH},    [ANCHOR] = {SP_anchor, 0.62, 0.50, 0.06, L_THUD},
+        [CANDLE] = {SP_candle, 0.45, 0.50, 0.62, L_SOFT},     [COFFEE] = {SP_coffee, 0.26, 0.50, 0.92, L_CLATTER},
+        [FISH] = {SP_fish, 0.62, 0.50, 0.06, L_SOFT},         [TORCH] = {SP_torch, 0.33, 0.73, 0.62, L_CLATTER},
+        [MALLET] = {SP_mallet, 0.60, 0.12, 0.90, L_THUD},     [DUCK] = {SP_duck, 0.62, 0.42, 0.30, L_QUACK},
+        [SCISSORS] = {SP_scissors, 0.52, 0.12, 0.55, L_CLATTER}, [SANDWICH] = {SP_sandwich, 0.20, 0.30, 0.75, L_SOFT},
+        [TELESCOPE] = {SP_telescope, 0.50, 0.22, 0.78, L_THUD}, [ALARM] = {SP_alarm, 0.38, 0.50, 0.08, L_CLATTER},
+        [ICECREAM] = {SP_icecream, 0.34, 0.50, 0.92, L_SOFT}, [BOAT] = {SP_boat, 0.42, 0.50, 0.88, L_THUD},
+        [FLOWERS] = {SP_flowers, 0.52, 0.50, 0.90, L_SOFT},   [LAMP] = {SP_lamp, 0.48, 0.50, 0.95, L_CLATTER},
+        [LADDER] = {SP_ladder, 1.30, 0.50, 0.55, L_CRASH},    [ANCHOR] = {SP_anchor, 0.62, 0.50, 0.06, L_THUD},
     };
     memcpy(thing, t, sizeof t);
 }
@@ -314,20 +320,19 @@ static Moment moment(double t)
     return m;
 }
 /* the face he pulls, and what he does after the toss, for a turn */
-static int face_for(const Moment *m) { return hash01((uint64_t)m->round * 31 + m->turn) < 0.5 ? POSE_LOOK : POSE_GOOKIE; }
 static int after_for(const Moment *m)
 {
-    static const int A[] = {POSE_WAIT, POSE_HONK, POSE_HAT, POSE_SHRUG, POSE_HONK};
-    return A[(int)(hash01((uint64_t)m->round * 37 + m->turn) * 5) % 5];
+    static const int A[] = {POSE_WAIT, POSE_HONK, POSE_HAT, POSE_SHRUG, POSE_HONK, POSE_GOOKIE, POSE_LOOK};
+    return A[(int)(hash01((uint64_t)m->round * 37 + m->turn) * 7) % 7];
 }
 
-/* the timings of a turn: when he pulls it out, shows it, pulls a face, throws it, and
- * when it lands */
-typedef struct { double pull, show, face, toss, let_go, land, after; } Times;
+/* the timings of a turn: when he pulls it out, shows it, throws it, lets go, and when
+ * it lands and he does what he does after */
+typedef struct { double pull, show, toss, let_go, land, after; } Times;
 static Times times_for(int what)
 {
-    if (what == LADDER) return (Times){0.9, 3.6, 5.2, 6.2, 6.3, 7.0, 6.8};
-    return (Times){0.9, 1.7, 3.3, 4.6, 4.7, 5.3, 5.2};
+    if (what == LADDER) return (Times){0.9, 3.6, 6.2, 6.3, 7.0, 6.8};
+    return (Times){0.9, 1.7, 4.6, 4.7, 5.3, 5.2};
 }
 
 static void update(double dt)
@@ -822,44 +827,32 @@ static void on_harpo(int pose, double px, double py, double *x, double *y)
     *x = hx0 + (px - foot_x[pose]) * hs;
     *y = hy0 + (py - sprite[HARPO[pose]].h) * hs;
 }
-/* his hand again, over the thing he holds: the square of the pose round his hand */
-#define HAND_R 31.0
-static void hand_over(int pose, double scale)
-{
-    flush(ren);
-    int sp = HARPO[pose];
-    if (!cur_tex || !cur_tex[sp]) return;
-    SDL_Rect src = {(int)(HAND[pose][0] - HAND_R), (int)(HAND[pose][1] - HAND_R), (int)(2 * HAND_R), (int)(2 * HAND_R)};
-    double x, y;
-    on_harpo(pose, src.x, src.y, &x, &y);
-    SDL_FRect d = {(float)x, (float)y, (float)(src.w * scale), (float)(src.h * scale)};
-    SDL_RenderCopyF(ren, cur_tex[sp], &src, &d);
-}
-static void draw_thing(int what, double x, double y, double angle, double alpha)
+static void draw_thing(int what, double x, double y, double angle, double scale)
 {
     const Thing *t = &thing[what];
-    put(t->pic, x, y, t->gx * sprite[t->pic].w, t->gy * sprite[t->pic].h, thing_scale(what), angle, alpha, 0);
+    put(t->pic, x, y, t->gx * sprite[t->pic].w, t->gy * sprite[t->pic].h, thing_scale(what) * scale, angle, 1, 0);
 }
 
-/* The heap, to the right of him: each thing lands on whatever is already there, at a
+/* The heap, to the right of him and a step upstage (so a little smaller): each thing lands on whatever is already there, at a
  * place and a tilt of its own. It is worked out afresh from the first thing each time,
  * so it never forgets. */
 #define BINS 32
+#define HEAP 0.72                         /* how big things are on the heap, back there */
 typedef struct { double x, y, angle; } Spot;       /* the middle of a thing on the heap, and its tilt */
 static void heap_spots(const Moment *m, int upto, Spot *spot)
 {
-    double heap[BINS] = {0}, x0 = sw * 0.53, x1 = sw * 0.99, bw = (x1 - x0) / BINS;
+    double heap[BINS] = {0}, floor_y = hy0 - sh * 0.035, x0 = sw * 0.58, x1 = sw * 0.99, bw = (x1 - x0) / BINS;
     for (int k = 0; k < upto; k++) {
         int what = m->ord[k];
         double r = hash01((uint64_t)m->round * 53 + k), r2 = hash01((uint64_t)m->round * 59 + k);
-        double s = thing_scale(what), w = sprite[thing[what].pic].w * s, h = sprite[thing[what].pic].h * s;
+        double s = thing_scale(what) * HEAP, w = sprite[thing[what].pic].w * s, h = sprite[thing[what].pic].h * s;
         double angle = (r2 - 0.5) * 60;
         if (what == LADDER) angle = 76;                           /* it comes down flat, in front of the heap */
         if (what == ANCHOR) angle = (r2 - 0.5) * 16;
         double a = angle * M_PI / 180, rw = fabs(w * cos(a)) + fabs(h * sin(a)), rh = fabs(w * sin(a)) + fabs(h * cos(a));
         /* it rolls to wherever the heap is lowest, of a few places it might come down */
         double x = 0, under = 1e9;
-        for (int c = 0; c < 4; c++) {
+        for (int c = 0; c < 8; c++) {
             double rc = c ? hash01((uint64_t)m->round * 61 + k * 7 + c) : r;
             double xc = what == LADDER ? (x0 + x1) / 2 : x0 + rw * 0.4 + (x1 - x0 - rw * 0.8) * rc, uc = 0;
             int c0 = (int)((xc - rw * 0.4 - x0) / bw), c1 = (int)((xc + rw * 0.4 - x0) / bw);
@@ -868,15 +861,15 @@ static void heap_spots(const Moment *m, int upto, Spot *spot)
             if (what == LADDER) break;
         }
         int b0 = (int)((x - rw * 0.4 - x0) / bw), b1 = (int)((x + rw * 0.4 - x0) / bw);
-        if (what == LADDER) { spot[k] = (Spot){x, hy0 - rh * 0.34, angle}; continue; }
-        spot[k] = (Spot){x, hy0 - under - rh * 0.5 + rh * 0.2, angle};       /* sunk in a little */
-        for (int i = b0; i <= b1; i++) if (i >= 0 && i < BINS) heap[i] = under + rh * 0.42;
+        if (what == LADDER) { spot[k] = (Spot){x, floor_y - rh * 0.34, angle}; continue; }
+        spot[k] = (Spot){x, floor_y - under - rh * 0.5 + rh * 0.25, angle};      /* sunk in a little */
+        for (int i = b0; i <= b1; i++) if (i >= 0 && i < BINS) heap[i] = under + rh * 0.3;
     }
 }
 /* where his grip on a thing is, when it lies on the heap at a spot */
 static void grip_on_heap(int what, const Spot *sp, double *x, double *y)
 {
-    double s = thing_scale(what), w = sprite[thing[what].pic].w * s, h = sprite[thing[what].pic].h * s;
+    double s = thing_scale(what) * HEAP, w = sprite[thing[what].pic].w * s, h = sprite[thing[what].pic].h * s;
     double dx = (thing[what].gx - 0.5) * w, dy = (thing[what].gy - 0.5) * h, a = sp->angle * M_PI / 180;
     *x = sp->x + dx * cos(a) - dy * sin(a); *y = sp->y + dx * sin(a) + dy * cos(a);
 }
@@ -899,8 +892,8 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     heap_spots(&m, m.turn < NTHING ? m.turn + 1 : NTHING, spot);
 
     /* what he is doing, and what he has in his hand */
-    int pose = POSE_WAIT, held = -1, flying = 0;
-    double hold_x = 0, hold_y = 0, hold_angle = 0;
+    int pose = POSE_WAIT, held = -1, flying = 0, showing = -1;
+    double hold_x = 0, hold_y = 0, shown_for = 0;
     double fade = 0;
     if (m.what >= 0) {
         Times tm = times_for(m.what);
@@ -919,16 +912,16 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
                 double len = sprite[SP_ladder].h * thing_scale(LADDER);
                 hold_x = hx + sin(anim_t * 20) * unit * 0.4; hold_y = cy + len * 0.45 - len * 1.0 * rise;
             } else { hold_x = cx + (hx - cx) * rise; hold_y = cy + (hy - cy) * rise; }
+            /* and once it is out, he holds it up */
+            if (m.what != LADDER && u >= tm.pull + 0.35) { showing = m.what; shown_for = u - tm.pull - 0.35; held = -1; }
         }
-        else if (u < tm.face) { pose = POSE_OFFER; held = m.what; }
-        else if (u < tm.toss) { pose = face_for(&m); held = m.what; }
+        else if (u < tm.toss) { showing = m.what; shown_for = u - (m.what == LADDER ? tm.show : tm.pull + 0.35); }
         else if (u < tm.after) {
             pose = POSE_TOSS;
             if (u < tm.let_go) held = m.what;
         }
         else pose = after_for(&m);
         if (held >= 0 && u >= tm.show) on_harpo(pose, HAND[pose][0], HAND[pose][1], &hold_x, &hold_y);
-        if (held >= 0 && u >= tm.show && u < tm.toss) hold_angle = sin(anim_t * 3) * 4;
         flying = u >= tm.let_go && u < tm.land;
     } else {
         double u = m.u;
@@ -944,16 +937,18 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
         double bounce = 0;
         if (k == m.turn) { double q = m.u - times_for(m.what).land; bounce = -unit * 2.5 * exp(-q * 9) * fabs(sin(q * 18)); }
         int what = m.ord[k];
-        double s = thing_scale(what);
+        double s = thing_scale(what) * HEAP;
         put(thing[what].pic, spot[k].x, spot[k].y + bounce, sprite[thing[what].pic].w / 2.0, sprite[thing[what].pic].h / 2.0, s, spot[k].angle, 1, 0);
     }
-    /* him, then the thing in his hand in front of him, then his hand again over its
-     * handle, so his fingers close round it */
-    put(HARPO[pose], hx0, hy0, foot_x[pose], sprite[HARPO[pose]].h, hs, 0, 1, 0);
-    if (held >= 0) {
-        draw_thing(held, hold_x, hold_y, hold_angle, 1);
-        int coming_out = pose == POSE_PULL && m.what >= 0 && m.u < times_for(m.what).pull + 0.35;
-        if (HAND[pose][0] > 0 && !coming_out && pose != POSE_HEAVE) hand_over(pose, hs);
+    if (showing >= 0) {
+        /* him holding it up: he pops up with it, then shows it off, rocking on his heels */
+        const double *at = HOLD_AT[showing];
+        double pop = 1 + 0.07 * exp(-shown_for * 7) * sin(shown_for * 22);
+        put(HOLDING[showing], hx0, hy0, at[0], at[1], hs * HARPO_TALL / at[2] * pop, sin(anim_t * 3.1) * 1.6, 1, 0);
+    } else {
+        /* him, and the thing coming out of his coat or leaving his hand */
+        put(HARPO[pose], hx0, hy0, foot_x[pose], sprite[HARPO[pose]].h, hs, 0, 1, 0);
+        if (held >= 0) draw_thing(held, hold_x, hold_y, 0, 1);
     }
     /* and the thing in the air, spinning over to the heap */
     if (flying) {
@@ -963,7 +958,7 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
         double ex, ey;
         grip_on_heap(m.what, &spot[m.turn], &ex, &ey);
         double x = sx + (ex - sx) * q, y = sy + (ey - sy) * q - sh * 0.35 * 4 * q * (1 - q);
-        draw_thing(m.what, x, y, spot[m.turn].angle * q + (m.what == LADDER ? 0 : 720 * q), 1);
+        draw_thing(m.what, x, y, spot[m.turn].angle * q + (m.what == LADDER ? 0 : 720 * q), 1 + (HEAP - 1) * q);
     }
     if (fade > 0) rect(0, 0, sw, sh, col(BG, fade));
     old_film();
