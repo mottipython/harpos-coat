@@ -1,5 +1,5 @@
 # Harpo's Coat - a cartoon screensaver: Harpo Marx and the bottomless coat
-VERSION  := 1.0.0
+VERSION  := 1.0.1
 PREFIX   ?= /usr
 SYSCONFDIR ?= /etc
 DESTDIR  ?=

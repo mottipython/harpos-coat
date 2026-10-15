@@ -37,7 +37,7 @@ Packages are on the [releases page](../../releases).
 
 For Windows 10 or 11, step by step:
 
-1. [**Download Harpo's Coat**](https://github.com/mottipython/harpos-coat/releases/latest/download/HarposCoat-Setup-1.0.0.exe).
+1. [**Download Harpo's Coat**](https://github.com/mottipython/harpos-coat/releases/latest/download/HarposCoat-Setup-1.0.1.exe).
 2. If the browser says the file "isn't commonly downloaded" or "could harm your
    device", click the **⋯** (or **^**) beside it and choose **Keep**, then **Keep
    anyway**.
@@ -72,11 +72,11 @@ Security, and click Open Anyway.
 
 **Fedora, Nobara** (built on Fedora 44):
 
-    sudo dnf install ./harpos-coat-1.0.0-1.fc44.x86_64.rpm
+    sudo dnf install ./harpos-coat-1.0.1-1.fc44.x86_64.rpm
 
 **Debian, Ubuntu, Mint** (Ubuntu 24.04 / Debian 13 or later):
 
-    sudo apt install ./harpos-coat_1.0.0_amd64.deb
+    sudo apt install ./harpos-coat_1.0.1_amd64.deb
 
 From your next login it starts by itself after five minutes idle on Wayland desktops
 that provide ext-idle-notify (KDE Plasma, Sway, Hyprland, niri, COSMIC, labwc and
