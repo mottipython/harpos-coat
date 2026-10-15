@@ -8,15 +8,16 @@ out of his long coat. Runs on Linux, Windows and macOS. One of the
 
 ## What it shows
 
-Harpo reaches into his coat and pulls something out, holds it up, shows it to us
-with a grin or his "gookie" face, and tosses it over his shoulder onto a growing
-heap. Then the next. Sixteen things in all, in a different order every time round: a
+Harpo reaches into his coat, pulls something out, holds it up to show us with a
+grin, and tosses it over his shoulder onto a growing heap, where it bounces and
+settles (the heavy things shake the whole heap). Then the next. Sixteen things in all, in a different order every time round: a
 candle burning at both ends, a cup of hot coffee, a fish, a blowtorch, a mallet, a
 live duck, a pair of enormous scissors, a ham sandwich, a telescope, an alarm clock
 that goes off, an ice-cream cone, a toy sailboat, a bunch of flowers, an oil lamp,
 an anchor, and last a ladder far too long for any coat, which he has to heave out
 of it rung by rung. Then he looks into his coat, shrugs, the lights go down, and he
-starts again. Now and then he honks his horn or tips his hat.
+starts again. Between things he honks his horn, tips his hat or pulls his "gookie"
+face.
 
 With cartoon noises: the rustle of the coat, pops and swanee whistles, quacks, the
 alarm bell, the blowtorch, and a thump, a clatter or a crash as each thing lands.
@@ -102,9 +103,9 @@ The sound can be turned off and on from the screen saver settings: on Windows, t
 ## How it was made
 
 The cartoon pictures were drawn with Google's Gemini from the prompts in
-`assets/PROMPTS.md` (the sheets as Gemini made them are in `assets/src`; the stage is
-the [Groucho Clock](https://github.com/mottipython/groucho-clock)'s), then cut up by
-`tools/make_parts.py` and animated in code. The program was written with Anthropic's
+`assets/PROMPTS.md` (the stage is the
+[Groucho Clock](https://github.com/mottipython/groucho-clock)'s), then cut up by
+`tools/make_parts.py` into the pictures in `assets/art` and animated in code. The program was written with Anthropic's
 Claude, working from the author's direction. The noises are made in code, except
 Harpo's horn and the duck, which are recordings: the horn from public-domain media,
 and the duck from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Anas_platyrhynchos_-_Mallard_XC112828.mp3)
