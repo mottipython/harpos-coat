@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Harpo's Coat
+Comment=Harpo Marx pulls one thing after another out of his coat
+Exec=harpos-coat --window
+Icon=harpos-coat
+Categories=Game;
+Keywords=comedy;cartoon;Marx Brothers;music;screensaver;

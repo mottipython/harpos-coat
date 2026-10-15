@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Harpo's Coat screensaver
+Comment=Start Harpo's Coat when the session has been idle
+Exec=harpos-coat-screensaver watch
+Icon=harpos-coat
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Harpo's Coat
+Comment=Harpo Marx pulls one thing after another out of his coat
+Exec=harpos-coat
+TryExec=harpos-coat
+X-Screensaver-Standalone=true
+X-Screensaver-Snapshot=harpos-coat --snapshot %o --size %wx%h --time 30 --mute
+X-Screensaver-Settings=harpos-coat --settings

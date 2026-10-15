@@ -1,0 +1,6 @@
+/* string 1 is the name Windows shows in its list of screensavers */
+1 ICON "packaging/windows/harpos-coat.ico"
+STRINGTABLE
+BEGIN
+    1 "Harpo's Coat"
+END

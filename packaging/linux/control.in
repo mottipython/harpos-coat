@@ -1,0 +1,16 @@
+Package: harpos-coat
+Version: @VERSION@
+Section: games
+Priority: optional
+Architecture: @ARCH@
+Depends: libc6 (>= 2.38), libsdl2-2.0-0 (>= 2.0.18), swayidle
+Installed-Size: @SIZE@
+Maintainer: Motti Schleider <motti.schleider@gmail.com>
+Description: Harpo's Coat, a cartoon screensaver of Harpo Marx and his coat
+ Harpo's Coat, a cartoon screensaver: Harpo Marx on a vaudeville stage pulls one
+ thing after another out of his long coat (a candle burning at both ends, a cup of
+ hot coffee, a fish, a blowtorch, a live duck, a ladder far too long for any coat),
+ shows each one off, and tosses it onto a growing heap. Now and then he honks.
+ .
+ On Wayland desktops it starts by itself after five minutes idle.
+ harpos-coat-screensaver changes the delay or turns it off.

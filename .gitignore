@@ -1,0 +1,6 @@
+build/
+dist/
+assets/src/
+tools/__pycache__/
+tools/__pycache__/
+preview/
