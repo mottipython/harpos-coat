@@ -241,7 +241,7 @@ static void make_things(void)
 {
     const Thing t[NTHING] = {
         [CANDLE] = {SP_candle, 0.34, 0.50, 0.62, L_SOFT},     [COFFEE] = {SP_coffee, 0.22, 0.50, 0.92, L_CLATTER},
-        [FISH] = {SP_fish, 0.40, 0.50, 0.06, L_SOFT},         [TORCH] = {SP_torch, 0.32, 0.86, 0.55, L_CLATTER},
+        [FISH] = {SP_fish, 0.40, 0.50, 0.06, L_SOFT},         [TORCH] = {SP_torch, 0.32, 0.73, 0.62, L_CLATTER},
         [MALLET] = {SP_mallet, 0.44, 0.12, 0.90, L_THUD},     [DUCK] = {SP_duck, 0.40, 0.42, 0.30, L_QUACK},
         [SCISSORS] = {SP_scissors, 0.38, 0.12, 0.55, L_CLATTER}, [SANDWICH] = {SP_sandwich, 0.22, 0.30, 0.75, L_SOFT},
         [TELESCOPE] = {SP_telescope, 0.42, 0.22, 0.78, L_THUD}, [ALARM] = {SP_alarm, 0.24, 0.50, 0.08, L_CLATTER},
@@ -822,6 +822,19 @@ static void on_harpo(int pose, double px, double py, double *x, double *y)
     *x = hx0 + (px - foot_x[pose]) * hs;
     *y = hy0 + (py - sprite[HARPO[pose]].h) * hs;
 }
+/* his hand again, over the thing he holds: the square of the pose round his hand */
+#define HAND_R 31.0
+static void hand_over(int pose, double scale)
+{
+    flush(ren);
+    int sp = HARPO[pose];
+    if (!cur_tex || !cur_tex[sp]) return;
+    SDL_Rect src = {(int)(HAND[pose][0] - HAND_R), (int)(HAND[pose][1] - HAND_R), (int)(2 * HAND_R), (int)(2 * HAND_R)};
+    double x, y;
+    on_harpo(pose, src.x, src.y, &x, &y);
+    SDL_FRect d = {(float)x, (float)y, (float)(src.w * scale), (float)(src.h * scale)};
+    SDL_RenderCopyF(ren, cur_tex[sp], &src, &d);
+}
 static void draw_thing(int what, double x, double y, double angle, double alpha)
 {
     const Thing *t = &thing[what];
@@ -934,12 +947,14 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
         double s = thing_scale(what);
         put(thing[what].pic, spot[k].x, spot[k].y + bounce, sprite[thing[what].pic].w / 2.0, sprite[thing[what].pic].h / 2.0, s, spot[k].angle, 1, 0);
     }
-    /* the thing in his hand goes behind him, so his fist is round it */
-    if (held >= 0) draw_thing(held, hold_x, hold_y, hold_angle, 1);
-    double fx, fy;
-    on_harpo(pose, 0, 0, &fx, &fy);
-    double breathe = 1 + 0.006 * sin(anim_t * 2.4);
-    put(HARPO[pose], hx0, hy0, foot_x[pose], sprite[HARPO[pose]].h, hs * breathe, 0, 1, 0);
+    /* him, then the thing in his hand in front of him, then his hand again over its
+     * handle, so his fingers close round it */
+    put(HARPO[pose], hx0, hy0, foot_x[pose], sprite[HARPO[pose]].h, hs, 0, 1, 0);
+    if (held >= 0) {
+        draw_thing(held, hold_x, hold_y, hold_angle, 1);
+        int coming_out = pose == POSE_PULL && m.what >= 0 && m.u < times_for(m.what).pull + 0.35;
+        if (HAND[pose][0] > 0 && !coming_out && pose != POSE_HEAVE) hand_over(pose, hs);
+    }
     /* and the thing in the air, spinning over to the heap */
     if (flying) {
         Times tm = times_for(m.what);
