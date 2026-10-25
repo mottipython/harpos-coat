@@ -1,0 +1,1 @@
+--snapshot /tmp/out.bmp --mute --size 1920x1080 --time 120.0 --seed 987654321

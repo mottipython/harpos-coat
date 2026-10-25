@@ -423,14 +423,17 @@ static void put(int which, double x, double y, double ax, double ay, double scal
 typedef struct { float *s; int n; } Snd;
 static Snd snd_new(double secs)
 {
-    Snd s;
+    Snd s = {NULL, 0};
+    if (secs <= 0.0 || secs > 3600.0) secs = 0.01;
     s.n = (int)(secs * RATE);
-    s.s = calloc(s.n > 0 ? s.n : 1, sizeof *s.s);
+    if (s.n <= 0) s.n = 1;
+    s.s = calloc((size_t)s.n, sizeof *s.s);
     return s;
 }
 static double nz(void) { return frand() * 2 - 1; }
 static void snd_norm(Snd *s, double peak)
 {
+    if (!s || !s->s || s->n <= 0) return;
     double m = 1e-9;
     for (int i = 0; i < s->n; i++) m = fmax(m, fabs(s->s[i]));
     for (int i = 0; i < s->n; i++) s->s[i] *= peak / m;
@@ -601,17 +604,24 @@ static Snd make_pff(double dur)
 static Snd decode(const unsigned char *a, const unsigned char *b)
 {
     Snd s = {NULL, 0};
-    int ch, rate;
-    short *pcm;
+    int ch = 0, rate = 0;
+    short *pcm = NULL;
     int n = stb_vorbis_decode_memory(a, (int)(b - a), &ch, &rate, &pcm);
-    if (n <= 0) return snd_new(0.01);
+    if (n <= 0 || rate <= 0 || ch < 1) {
+        if (pcm) free(pcm);
+        return snd_new(0.01);
+    }
     s = snd_new((double)n / rate);
+    if (!s.s) {
+        free(pcm);
+        return s;
+    }
     for (int i = 0; i < s.n; i++) {
         double src = (double)i * rate / RATE;
         int j = (int)src;
         if (j + 1 >= n) break;
         double fr = src - j;
-        s.s[i] = (pcm[j * ch] * (1 - fr) + pcm[(j + 1) * ch] * fr) / 32768.0;
+        s.s[i] = (pcm[j * ch] * (1 - fr) + pcm[(j + 1) * ch] * fr) / 32768.0f;
     }
     free(pcm);
     snd_norm(&s, 1);
@@ -1056,6 +1066,10 @@ static int snapshot(void)
 
 static void usage(void)
 {
+    if (getenv("SDL_VIDEODRIVER") && !strcmp(getenv("SDL_VIDEODRIVER"), "dummy")) {
+        fprintf(stderr, "Harpo's Coat screensaver options:\n  --window\n  --snapshot FILE.bmp\n  --size WxH\n  --time SECONDS\n");
+        return;
+    }
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Harpo's Coat",
         "Harpo's Coat screensaver\n\n"
         "  --window        run in a window (Esc or Q quits)\n"
@@ -1133,11 +1147,15 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--snapshot") && i + 1 < argc) opt_snapshot = argv[++i];
         else if (!strcmp(a, "--mute")) opt_mute = 1;
         else if (!strcmp(a, "--wav") && i + 1 < argc) opt_wav = argv[++i];
-        else if (!strcmp(a, "--time") && i + 1 < argc) opt_time = SDL_atof(argv[++i]);
+        else if (!strcmp(a, "--time") && i + 1 < argc) {
+            opt_time = SDL_atof(argv[++i]);
+            if (opt_time < 0) opt_time = 0;
+            if (opt_time > 86400) opt_time = 86400;
+        }
         else if (!strcmp(a, "--size") && i + 1 < argc) {
             const char *x = SDL_strchr(argv[++i], 'x');
             opt_w = SDL_atoi(argv[i]); opt_h = x ? SDL_atoi(x + 1) : 0;
-            if (opt_w < 64 || opt_h < 64) { usage(); return 1; }
+            if (opt_w < 64 || opt_h < 64 || opt_w > 8192 || opt_h > 8192) { usage(); return 1; }
         }
         else { usage(); return 1; }
     }

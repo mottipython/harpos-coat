@@ -1,0 +1,4 @@
+sound=
+sound=1
+sound=true
+sound=invalid_value_with_very_long_string_overflow_attempt_123456789012345678901234567890
